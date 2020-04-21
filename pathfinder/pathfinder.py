@@ -10,7 +10,10 @@ import time
 import timeit
 import numpy as np
 from pathlib import Path
+import jsbeautifier
 
+opts = jsbeautifier.default_options()
+opts.indent_size = 2
 
 class PathFinder(object):
     def __init__(self, config_path):
@@ -55,7 +58,8 @@ class PathFinder(object):
             s = self.concept2id[source]
             t = self.concept2id[target]
         except:
-            print('missing concept ids')
+            if ifprint:
+                print('missing concept ids')
             return
 
         if s not in self.cpnet_simple.nodes() or t not in self.cpnet_simple.nodes():
@@ -100,3 +104,32 @@ class PathFinder(object):
 
             pf_res.append({"path": p, "rel": rl})
         return pf_res
+
+    def process(self, concepts_fn, nhops, verbose=False):
+        with open(concepts_fn, 'r') as fp:
+            concepts_data = json.load(fp)
+       
+        output_path = Path(concepts_fn).parent
+        paths_found = []
+
+        for item in tqdm(concepts_data):
+            _object = sorted(item["ac"])
+            _thor_objects = item["qc"]
+            _found_paths = []  # path finding results
+            
+            for obj in _object:
+                for th_obj in _thor_objects:
+                    pf_res = self.find_paths(th_obj, obj, nhops, ifprint=verbose)
+                    _found_paths.append({"object":obj, "thor_objects":th_obj, "paths":pf_res})
+
+            paths_found.append(_found_paths)
+        out_fn = output_path / f'{concepts_fn.name}.{nhops}hops_paths.json'
+        
+        with open(out_fn , 'w') as fi:
+            fi.write(jsbeautifier.beautify(json.dumps(paths_found), opts))
+
+        print(f'Found paths written to {out_fn}')
+        
+
+
+

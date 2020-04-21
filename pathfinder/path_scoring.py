@@ -1,22 +1,16 @@
 import pickle
 import json
-
 from tqdm import tqdm
-
 import configparser
-
 from scipy import spatial
 import numpy as np
 import os
 from os import sys, path
 import random
 
-# sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-# from embeddings.TransE import *
 
 config = configparser.ConfigParser()
 config.read("paths.cfg")
-
 
 cpnet = None
 cpnet_simple = None
@@ -27,13 +21,6 @@ id2concept = None
 concept_embs = None
 relation_embs = None
 mcp_py_filename = None
-
-# def test():
-#     global id2concept, id2relation
-#     init_predict(2,5,2)
-#     print(id2concept[2])
-#     print(id2concept[5])
-#     print(id2rel[2])
 
 
 def load_resources(method):
