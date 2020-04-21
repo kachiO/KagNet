@@ -8,217 +8,151 @@ from tqdm import tqdm
 import numpy as np
 import re 
 from pathlib import Path
+import jsbeautifier
+
 
 blacklist = set(["-PRON-", "actually", "likely", "possibly", "want",
                  "make", "my", "someone", "sometimes_people", "sometimes","would", "want_to",
                  "one", "something", "sometimes", "everybody", "somebody", "could", "could_be"
                  ])
 
-concept_vocab = set()
-config = configparser.ConfigParser()
-config.read(Path("/Users/odoemoo1/projects/visual-navigation/KagNet/grounding/paths.cfg"))
-with open(config["paths"]["concept_vocab"], "r", encoding="utf8") as f:
-    cpnet_vocab = [l.strip() for l in list(f.readlines())]
-cpnet_vocab = [c.replace("_", " ") for c in cpnet_vocab]
-
-def lemmatize(nlp, concept):
-    doc = nlp(concept.replace("_"," "))
-    lcs = set()
-    # for i in range(len(doc)):
-    #     lemmas = []
-    #     for j, token in enumerate(doc):
-    #         if j == i:
-    #             lemmas.append(token.lemma_)
-    #         else:
-    #             lemmas.append(token.text)
-    #     lc = "_".join(lemmas)
-    #     lcs.add(lc)
-    lcs.add("_".join([token.lemma_ for token in doc])) # all lemma
-    return lcs
-
-def load_matcher(nlp, cfg_path='paths.cfg'):
-    config = configparser.ConfigParser()
-    config.read(cfg_path)
-    with open(config["paths"]["matcher_patterns"], "r", encoding="utf8") as f:
-        all_patterns = json.load(f)
-
-    matcher = Matcher(nlp.vocab)
-    for concept, pattern in tqdm(all_patterns.items(), desc="Adding patterns to Matcher."):
-        matcher.add(concept, None, pattern)
-    return matcher
-
-def ground_mentioned_concepts(nlp, matcher, s, ans = ""):
-    s = s.lower()
-    doc = nlp(s)
-    matches = matcher(doc)
-
-    mentioned_concepts = set()
-    span_to_concepts = {}
-
-    for match_id, start, end in matches:
-
-        span = doc[start:end].text  # the matched span
-        if len(set(span.split(" ")).intersection(set(ans.split(" ")))) > 0:
-            continue
-        original_concept = nlp.vocab.strings[match_id]
-        # print("Matched '" + span + "' to the rule '" + string_id)
-
-        if len(original_concept.split("_")) == 1:
-            original_concept = list(lemmatize(nlp, original_concept))[0]
-
-        if span not in span_to_concepts:
-            span_to_concepts[span] = set()
-
-        span_to_concepts[span].add(original_concept)
-
-    for span, concepts in span_to_concepts.items():
-        concepts_sorted = list(concepts)
-        concepts_sorted.sort(key=len)
-
-        # mentioned_concepts.update(concepts_sorted[0:2])
-
-        shortest = concepts_sorted[0:3] #
-        for c in shortest:
-            if c in blacklist:
-                continue
-            lcs = lemmatize(nlp, c)
-            intersect = lcs.intersection(shortest)
-            if len(intersect)>0:
-                mentioned_concepts.add(list(intersect)[0])
-            else:
-                mentioned_concepts.add(c)
-
-
-    # stop = timeit.default_timer()
-    # print('\t Done! Time: ', "{0:.2f} sec".format(float(stop - start_time)))
-
-    # if __name__ == "__main__":
-    #     print("Sentence: " + s)
-    #     print(mentioned_concepts)
-    #     print()
-    return mentioned_concepts
-
-def hard_ground(nlp, sent):
-    global cpnet_vocab
-    sent = sent.lower()
-    doc = nlp(sent)
-    res = set()
-    for t in doc:
-        if t.lemma_ in cpnet_vocab:
-            res.add(t.lemma_)
-    sent = "_".join([t.text for t in doc])
-    if sent in cpnet_vocab:
-        res.add(sent)
-    return res
-
 def camel_case_split(str): 
     return re.findall(r'[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))', str) 
 
-def match_mentioned_concepts(nlp, sents, answers, batch_id = -1, config_path='paths.cfg'):
-    matcher = load_matcher(nlp, config_path)
+class GroundConcepts(object):
+    """
+    Extract and match concepts from Ai2Thor objects to ConceptNet concepts.
+    """
+    def __init__(self, config_path):
+        self.concept_vocab = set()
+        self.config = configparser.ConfigParser()
+        self.config.read(config_path)
+        self.path = Path(config_path).parent.parent
+        self.nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
+        self.nlp.add_pipe(self.nlp.create_pipe('sentencizer'))
 
-    res = []
-    # print("Begin matching concepts.")
-    for sid, s in tqdm(enumerate(sents), total=len(sents), desc="grounding batch_id:%d"%batch_id):
-        a = answers[sid]
-        all_concepts = ground_mentioned_concepts(nlp, matcher, s, a)
-        answer_concepts = ground_mentioned_concepts(nlp, matcher, a)
-        question_concepts = all_concepts - answer_concepts
-        if len(question_concepts)==0:
-            # print(s)
-            question_concepts = hard_ground(nlp, s) # not very possible
-        if len(answer_concepts)==0:
-            print(a)
-            answer_concepts = hard_ground(nlp, a) # some case
-            print(answer_concepts)
+        with open(self.path / self.config["paths"]["concept_vocab"][3:], "r", encoding="utf8") as f:
+            self.cpnet_vocab = [l.strip() for l in list(f.readlines())]
 
-        res.append({"sent": s, "ans": a, "qc": list(question_concepts), "ac": list(answer_concepts)})
-    return res
+        self.cpnet_vocab = [c.replace("_", " ") for c in self.cpnet_vocab]
 
-def process(filename, batch_id=-1):
+    def lemmatize(self, concept):
+        doc = self.nlp(concept.replace("_"," "))
+        lcs = set()
+        lcs.add("_".join([token.lemma_ for token in doc])) # all lemma
+        return lcs
 
-    nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
-    nlp.add_pipe(nlp.create_pipe('sentencizer'))
+    def load_matcher(self,):
+        with open(self.path / self.config["paths"]["matcher_patterns"][3:], "r", encoding="utf8") as f:
+            all_patterns = json.load(f)
 
-    sents = []
-    answers = []
-    with open(filename, 'r') as f:
-        lines = f.read().split("\n")
+        matcher = Matcher(self.nlp.vocab)
+        for concept, pattern in tqdm(all_patterns.items(), desc="Adding patterns to Matcher."):
+            matcher.add(concept, None, pattern)
+        return matcher
 
-    for line in tqdm(lines, desc="loading file"):
-        if line == "":
-            continue
-        j = json.loads(line)
-        for statement in j["statements"]:
-            sents.append(statement["statement"])
-        for answer in j["question"]["choices"]:
-            answers.append(answer["text"])
+    def ground_mentioned_concepts(self, s, ans = ""):
+        s = s.lower()
+        doc = self.nlp(s)
+        matches = self.matcher(doc)
+        mentioned_concepts = set()
+        span_to_concepts = {}
 
-    if batch_id >= 0:
-        output_path = filename + ".%d.mcp" % batch_id
-        batch_sents = list(np.array_split(sents, 100)[batch_id])
-        batch_answers = list(np.array_split(answers, 100)[batch_id])
-    else:
-        output_path = filename + ".mcp"
-        batch_sents = sents
-        batch_answers = answers
+        for match_id, start, end in matches:
+            span = doc[start:end].text  # the matched span
+            if len(set(span.split(" ")).intersection(set(ans.split(" ")))) > 0:
+                continue
+            original_concept = self.nlp.vocab.strings[match_id]
 
-    res = match_mentioned_concepts(nlp, sents=batch_sents, answers=batch_answers, batch_id=batch_id)
-    with open(output_path, 'w') as fo:
-        json.dump(res, fo)
+            if len(original_concept.split("_")) == 1:
+                original_concept = list(self.lemmatize(original_concept))[0]
 
-def test():
-    nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
-    nlp.add_pipe(nlp.create_pipe('sentencizer'))
-    res = match_mentioned_concepts(nlp, sents=["Sometimes people say that someone stupid has no swimming pool."], answers=["swimming pool"])
-    print(res)
+            if span not in span_to_concepts:
+                span_to_concepts[span] = set()
 
-import jsbeautifier
-opts = jsbeautifier.default_options()
-opts.indent_size = 2
+            span_to_concepts[span].add(original_concept)
 
-def ai2thor_objects_to_rooms_concepts_all():
-    nlp = spacy.load('en', disable=['ner', 'parser', 'textcat'])
-    nlp.add_pipe(nlp.create_pipe('sentencizer'))
+        for span, concepts in span_to_concepts.items():
+            concepts_sorted = list(concepts)
+            concepts_sorted.sort(key=len)
+            shortest = concepts_sorted[0:3] #
+            for c in shortest:
+                if c in blacklist:
+                    continue
+                lcs = self.lemmatize(c)
+                intersect = lcs.intersection(shortest)
+                if len(intersect)>0:
+                    mentioned_concepts.add(list(intersect)[0])
+                else:
+                    mentioned_concepts.add(c)
 
-    with open('objects.txt', 'r') as f: 
-        lines = f.read().split('\n')
-    rooms = [' '.join(['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']) for i in range(83)]
-    objs = [line for line in lines if not line == '']
-    objs = [' '.join(np.unique([o] + camel_case_split(o))) for o in objs]
-    res = match_mentioned_concepts(nlp, sents=objs, answers=rooms,)
+        return mentioned_concepts
 
-    with open('ai2thor_concepts.json', 'w') as f: 
-        json.dump(res, f)
+    def hard_ground(self, sent):
+        sent = sent.lower()
+        doc = self.nlp(sent)
+        res = set()
+
+        for t in doc:
+            if t.lemma_ in self.cpnet_vocab:
+                res.add(t.lemma_)
+
+        sent = "_".join([t.text for t in doc])
+
+        if sent in self.cpnet_vocab:
+            res.add(sent)
+        return res
+
+    def match_mentioned_concepts(self, sents, answers):
+        self.matcher = self.load_matcher()
+        res = []
+
+        for sid, s in tqdm(enumerate(sents), total=len(sents), desc="grounding"):
+            a = answers[sid]
+            all_concepts = self.ground_mentioned_concepts(s, a)
+            answer_concepts = self.ground_mentioned_concepts(a)
+            question_concepts = all_concepts - answer_concepts
+            if len(question_concepts)==0:
+                question_concepts = self.hard_ground(s) # not very possible
+            if len(answer_concepts)==0:
+                print(a)
+                answer_concepts = self.hard_ground(a) # some case
+                print(answer_concepts)
+
+            res.append({"sent": s, "ans": a, "qc": list(question_concepts), "ac": list(answer_concepts)})
+        return res
     
-    with open(f'ai2thor_concepts.json.mcp', 'w') as fp:
-        fp.write(jsbeautifier.beautify(json.dumps(res), opts))
-
-    print(res)
-
-def ai2thor_objects_to_rooms_concepts_separate():
-
-    nlp = spacy.load('en', disable=['ner', 'parser', 'textcat'])
-    nlp.add_pipe(nlp.create_pipe('sentencizer'))
-
-    with open('objects.txt', 'r') as f: 
-        lines = f.read().split('\n')
+    def process(self, objects_list, add_rooms=True, exclude_self=False, outfilename='ai2thor_objects_to_objects'):
+        with open(objects_list, 'r') as f: 
+            lines = f.read().split('\n')
     
-    objs = [line for line in lines if not line == '']
-    objs = [' '.join(np.unique([o] + camel_case_split(o))) for o in objs]
-    
-    for room in ['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']:
-        res = match_mentioned_concepts(nlp, sents=objs, answers=[room] * len(objs),)
+        objects = [line for line in lines if not line == '']
+        objects = [' '.join(np.unique([o] + camel_case_split(o))) for o in objects]
+        objects_all = objects
+        name = ''
+        
+        if add_rooms:
+            objects_all += ['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']
+            name += '_rooms'
+            print('Added rooms')
+            
+        if exclude_self:
+            _objects_all = [' '.join(objects_all[:ii] + objects_all[ii+1:]) for ii, oo in enumerate(objects)]
+            name += '_exclude_self'
+        else:
+            _objects_all = [' '.join(objects_all) for ii, oo in enumerate(objects)]
+            name += '_include_self'
 
-        with open(f'ai2thor_concepts_{room}.json', 'w') as f: 
-            json.dump(res, f)
-        print(res)
+        output_path = self.path / 'datasets/ai2thor'
+        output_path.mkdir(exist_ok=True, parents=True) 
 
-        with open(f'ai2thor_concepts_{room}.json.mcp', 'w') as fp:
+        res = self.match_mentioned_concepts(sents=objects, answers=_objects_all)
+
+        opts = jsbeautifier.default_options()
+        opts.indent_size = 2
+        outfilename += name
+        out_fn  = str(output_path / f'{outfilename}_concepts.json')
+
+        with open(out_fn, 'w') as fp:
             fp.write(jsbeautifier.beautify(json.dumps(res), opts))
-
-# "sent": "Watch television do children require to grow up healthy.", "ans": "watch television",
-if __name__ == "__main__":
-    process(sys.argv[1], int(sys.argv[2]))
-
-# test()
+        print(f'Saved to {out_fn}')
