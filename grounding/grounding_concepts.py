@@ -6,21 +6,22 @@ import sys
 import timeit
 from tqdm import tqdm
 import numpy as np
+import re 
+from pathlib import Path
+
 blacklist = set(["-PRON-", "actually", "likely", "possibly", "want",
                  "make", "my", "someone", "sometimes_people", "sometimes","would", "want_to",
                  "one", "something", "sometimes", "everybody", "somebody", "could", "could_be"
                  ])
 
-
 concept_vocab = set()
 config = configparser.ConfigParser()
-config.read("paths.cfg")
+config.read(Path("/Users/odoemoo1/projects/visual-navigation/KagNet/grounding/paths.cfg"))
 with open(config["paths"]["concept_vocab"], "r", encoding="utf8") as f:
     cpnet_vocab = [l.strip() for l in list(f.readlines())]
 cpnet_vocab = [c.replace("_", " ") for c in cpnet_vocab]
 
 def lemmatize(nlp, concept):
-
     doc = nlp(concept.replace("_"," "))
     lcs = set()
     # for i in range(len(doc)):
@@ -35,9 +36,9 @@ def lemmatize(nlp, concept):
     lcs.add("_".join([token.lemma_ for token in doc])) # all lemma
     return lcs
 
-def load_matcher(nlp):
+def load_matcher(nlp, cfg_path='paths.cfg'):
     config = configparser.ConfigParser()
-    config.read("paths.cfg")
+    config.read(cfg_path)
     with open(config["paths"]["matcher_patterns"], "r", encoding="utf8") as f:
         all_patterns = json.load(f)
 
@@ -110,8 +111,11 @@ def hard_ground(nlp, sent):
         res.add(sent)
     return res
 
-def match_mentioned_concepts(nlp, sents, answers, batch_id = -1):
-    matcher = load_matcher(nlp)
+def camel_case_split(str): 
+    return re.findall(r'[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))', str) 
+
+def match_mentioned_concepts(nlp, sents, answers, batch_id = -1, config_path='paths.cfg'):
+    matcher = load_matcher(nlp, config_path)
 
     res = []
     # print("Begin matching concepts.")
@@ -133,7 +137,6 @@ def match_mentioned_concepts(nlp, sents, answers, batch_id = -1):
 
 def process(filename, batch_id=-1):
 
-
     nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
     nlp.add_pipe(nlp.create_pipe('sentencizer'))
 
@@ -141,7 +144,6 @@ def process(filename, batch_id=-1):
     answers = []
     with open(filename, 'r') as f:
         lines = f.read().split("\n")
-
 
     for line in tqdm(lines, desc="loading file"):
         if line == "":
@@ -151,7 +153,6 @@ def process(filename, batch_id=-1):
             sents.append(statement["statement"])
         for answer in j["question"]["choices"]:
             answers.append(answer["text"])
-
 
     if batch_id >= 0:
         output_path = filename + ".%d.mcp" % batch_id
@@ -166,13 +167,55 @@ def process(filename, batch_id=-1):
     with open(output_path, 'w') as fo:
         json.dump(res, fo)
 
-
-
 def test():
     nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
     nlp.add_pipe(nlp.create_pipe('sentencizer'))
     res = match_mentioned_concepts(nlp, sents=["Sometimes people say that someone stupid has no swimming pool."], answers=["swimming pool"])
     print(res)
+
+import jsbeautifier
+opts = jsbeautifier.default_options()
+opts.indent_size = 2
+
+def ai2thor_objects_to_rooms_concepts_all():
+    nlp = spacy.load('en', disable=['ner', 'parser', 'textcat'])
+    nlp.add_pipe(nlp.create_pipe('sentencizer'))
+
+    with open('objects.txt', 'r') as f: 
+        lines = f.read().split('\n')
+    rooms = [' '.join(['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']) for i in range(83)]
+    objs = [line for line in lines if not line == '']
+    objs = [' '.join(np.unique([o] + camel_case_split(o))) for o in objs]
+    res = match_mentioned_concepts(nlp, sents=objs, answers=rooms,)
+
+    with open('ai2thor_concepts.json', 'w') as f: 
+        json.dump(res, f)
+    
+    with open(f'ai2thor_concepts.json.mcp', 'w') as fp:
+        fp.write(jsbeautifier.beautify(json.dumps(res), opts))
+
+    print(res)
+
+def ai2thor_objects_to_rooms_concepts_separate():
+
+    nlp = spacy.load('en', disable=['ner', 'parser', 'textcat'])
+    nlp.add_pipe(nlp.create_pipe('sentencizer'))
+
+    with open('objects.txt', 'r') as f: 
+        lines = f.read().split('\n')
+    
+    objs = [line for line in lines if not line == '']
+    objs = [' '.join(np.unique([o] + camel_case_split(o))) for o in objs]
+    
+    for room in ['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']:
+        res = match_mentioned_concepts(nlp, sents=objs, answers=[room] * len(objs),)
+
+        with open(f'ai2thor_concepts_{room}.json', 'w') as f: 
+            json.dump(res, f)
+        print(res)
+
+        with open(f'ai2thor_concepts_{room}.json.mcp', 'w') as fp:
+            fp.write(jsbeautifier.beautify(json.dumps(res), opts))
 
 # "sent": "Watch television do children require to grow up healthy.", "ans": "watch television",
 if __name__ == "__main__":

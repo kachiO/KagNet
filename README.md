@@ -24,6 +24,7 @@ conda install faiss-gpu cudatoolkit=10.0 -c pytorch -n kagnet_test
 pip install nltk
 conda install -c conda-forge spacy -n kagnet_test
 python -m spacy download en
+ptthon -m spacy download en_core_web_sm
 pip install jsbeautifier
 pip install networkx
 pip install dgl
@@ -62,6 +63,10 @@ unzip glove.6B.zip
 rm glove.*.zip
 cd ../
 python glove_to_npy.py  
+cd ../triple_string
+python extract_template_cpnet.py
+python triple_string_generation.py
+cd ../embeddings
 python create_embeddings_glove.py
 ```
 

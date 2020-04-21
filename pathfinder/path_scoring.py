@@ -26,7 +26,7 @@ id2relation = None
 id2concept = None
 concept_embs = None
 relation_embs = None
-mcp_py_filenmae = None
+mcp_py_filename = None
 
 # def test():
 #     global id2concept, id2relation
@@ -48,7 +48,7 @@ def load_resources(method):
 
     print("concept2id done")
 
-    concept_embs = np.load("../embeddings/openke_data/embs/glove_initialized/glove.transe.sgd.ent.npy")
+    concept_embs = np.load("../embeddings/concept_glove.avg.npy") #np.load("../embeddings/openke_data/embs/glove_initialized/glove.transe.sgd.ent.npy")
 
     print("concept_embs done")
 
@@ -255,10 +255,10 @@ def path_scoring(path, context):
 
 
 def calc_context_emb(pooling="mean", filename =""):
-    global mcp_py_filenmae
-    mcp_py_filenmae = filename + "." + pooling + ".npy"
-    if os.path.exists(mcp_py_filenmae):
-        print(mcp_py_filenmae, "exists!")
+    global mcp_py_filename
+    mcp_py_filename = filename + "." + pooling + ".npy"
+    if os.path.exists(mcp_py_filename):
+        print(mcp_py_filename, "exists!")
         return
 
     with open(filename, "rb") as f:
@@ -274,15 +274,15 @@ def calc_context_emb(pooling="mean", filename =""):
 
 
     embs = np.asarray(embs)
-    print("output_path: " + mcp_py_filenmae)
-    np.save(mcp_py_filenmae, embs)
+    print("output_path: " + mcp_py_filename)
+    np.save(mcp_py_filename, embs)
 
 
 
 
 def score_paths(filename, score_filename, method, debug=False, debug_range=None):
 
-    global id2concept, mcp_py_filenmae
+    global id2concept, mcp_py_filename
 
     print("Loading paths")
 
@@ -295,7 +295,7 @@ def score_paths(filename, score_filename, method, debug=False, debug_range=None)
 
         print("Loading context embeddings")
 
-        context_embs = np.load(mcp_py_filenmae)
+        context_embs = np.load(mcp_py_filename)
 
         print("Loaded")
 
@@ -347,11 +347,11 @@ def score_paths(filename, score_filename, method, debug=False, debug_range=None)
 
 if __name__=="__main__":
     import sys
-    flag = sys.argv[1]
-    method = "triple_cls" #
-    mcp_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp"%flag
-    ori_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.pickle"%flag
-    scores_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.scores.pickle"%flag
+    #flag = sys.argv[1]
+    method = None #"triple_cls" #
+    mcp_file = '../datasets/ai2thor_concepts_Bathroom.json.mcp' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp"%flag
+    ori_pckle_file = '../datasets/ai2thor_concepts_Bathroom.json.mcp.-1.pf.pickle' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.pickle"%flag
+    scores_pckle_file = '../datasets/ai2thor_concepts_Bathroom.json.mcp.pf.scores.pickle' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.scores.pickle"%flag
 
     '''to calculate the context embedding for qas'''
 

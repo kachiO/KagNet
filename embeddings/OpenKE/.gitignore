@@ -133,5 +133,5 @@ venv.bak/
 *.out
 *.app
 
-# Backups
-*~
+#Backup files
+*.py.bak

@@ -17,12 +17,16 @@ datasets/sgn_pretrain.*.npy
 datasets/sgn_pretrain.*.statements
 datasets/commonsenseqa/*_rand_split.jsonl.statements.rcg.refine
 datasets/csqa_new/*_rand_split.jsonl.statements.rcg.refine
+datasets/ai2thor/
 LRCGN/models/
+embeddings/_OpenKE/
+.ipynb_checkpoints/
+.vscode/
 *.egg-info/
 *.rcg
 *.swp
 conceptnet/conceptnet_en.graph
-*.ipynb
+conceptnet/conceptnet-assertions-5.6.0.csv.en
 *.dgl
 *.model
 *.bin
@@ -34,3 +38,4 @@ models/model_save/*
 *.nxg
 *.pk
 *.pnxg
+

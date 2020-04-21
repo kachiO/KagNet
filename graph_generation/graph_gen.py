@@ -13,14 +13,14 @@ import pickle
 
 import sys
 
-split = sys.argv[1]
+#split = sys.argv[1]
 
 config = configparser.ConfigParser()
 config.read("paths.cfg")
 
-GRAPH_PATH = "../datasets/csqa_new/%s_rand_split.jsonl.statements.pruned.0.15.pnxg"%split
-PF_PATH = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.pruned.0.15.pickle"%split
-MCP_PATH = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp"%split
+GRAPH_PATH = '../datasets//ai2thor_concepts_Bathroom.json.mcp.pf.pruned.pickle.pnxg'
+PF_PATH = '../datasets//ai2thor_concepts_Bathroom.json.mcp.pf.pruned.pickle' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.pruned.0.15.pickle"%split
+MCP_PATH = '../datasets/ai2thor_concepts_Bathroom.json.mcp'#"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp"%split
 
 NUM_CHOICES = 5
 
@@ -213,4 +213,5 @@ def main():
         fw.write(final_text)
     print("Write Graph Done: %s"%GRAPH_PATH)
 
-main()
+if __name__ == "__main__":
+    main()

@@ -1,8 +1,9 @@
 import timeit
 import json
 import pickle
+from pathlib import Path
 
-fname = '../datasets/csqa_new/train_rand_split.jsonl.statements.mcp.pf'
+fname = '/Users/odoemoo1/projects/visual-navigation/KagNet/datasets/ai2thor_concepts_Bathroom.json.mcp.-1.pf' #'../datasets/csqa_new/train_rand_split.jsonl.statements.mcp.pf'
 #
 start_time = timeit.default_timer()
 print("loading paths from %s" % fname)

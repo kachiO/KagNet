@@ -2,11 +2,14 @@ import pickle
 from tqdm import tqdm
 
 import sys
-flag = sys.argv[1]
+#flag = sys.argv[1]
 threshold = 0.15
-ori_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.pickle"%flag
-scores_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.scores.pickle"%flag
-pruned_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.pruned.%s.pickle"%(flag, str(threshold))
+#ori_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.pickle"%flag
+#scores_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.scores.pickle"%flag
+#pruned_pckle_file = "../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.pruned.%s.pickle"%(flag, str(threshold))
+ori_pckle_file = '../datasets/ai2thor_concepts_Bathroom.json.mcp.-1.pf.pickle' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.pickle"%flag
+scores_pckle_file = '../datasets/ai2thor_concepts_Bathroom.json.mcp.pf.scores.pickle' #"../datasets/csqa_new/%s_rand_split.jsonl.statements.mcp.pf.cls.scores.pickle"%flag
+pruned_pckle_file = '../datasets//ai2thor_concepts_Bathroom.json.mcp.pf.pruned.pickle'
 
 # threshold = 0.75
 # threshold = 0.15
