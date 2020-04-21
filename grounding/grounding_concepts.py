@@ -10,7 +10,6 @@ import re
 from pathlib import Path
 import jsbeautifier
 
-
 blacklist = set(["-PRON-", "actually", "likely", "possibly", "want",
                  "make", "my", "someone", "sometimes_people", "sometimes","would", "want_to",
                  "one", "something", "sometimes", "everybody", "somebody", "could", "could_be"
@@ -24,7 +23,6 @@ class GroundConcepts(object):
     Extract and match concepts from Ai2Thor objects to ConceptNet concepts.
     """
     def __init__(self, config_path):
-        self.concept_vocab = set()
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
         self.path = Path(config_path).parent.parent
@@ -32,9 +30,9 @@ class GroundConcepts(object):
         self.nlp.add_pipe(self.nlp.create_pipe('sentencizer'))
 
         with open(self.path / self.config["paths"]["concept_vocab"][3:], "r", encoding="utf8") as f:
-            self.cpnet_vocab = [l.strip() for l in list(f.readlines())]
+            self.concept_vocab = [l.strip() for l in list(f.readlines())]
 
-        self.cpnet_vocab = [c.replace("_", " ") for c in self.cpnet_vocab]
+        self.concept_vocab = [c.replace("_", " ") for c in self.concept_vocab]
 
     def lemmatize(self, concept):
         doc = self.nlp(concept.replace("_"," "))
@@ -94,12 +92,12 @@ class GroundConcepts(object):
         res = set()
 
         for t in doc:
-            if t.lemma_ in self.cpnet_vocab:
+            if t.lemma_ in self.concept_vocab:
                 res.add(t.lemma_)
 
         sent = "_".join([t.text for t in doc])
 
-        if sent in self.cpnet_vocab:
+        if sent in self.concept_vocab:
             res.add(sent)
         return res
 
@@ -107,7 +105,7 @@ class GroundConcepts(object):
         self.matcher = self.load_matcher()
         res = []
 
-        for sid, s in tqdm(enumerate(sents), total=len(sents), desc="grounding"):
+        for sid, s in tqdm(enumerate(sents), total=len(sents), desc="Grounding"):
             a = answers[sid]
             all_concepts = self.ground_mentioned_concepts(s, a)
             answer_concepts = self.ground_mentioned_concepts(a)
@@ -122,6 +120,56 @@ class GroundConcepts(object):
             res.append({"sent": s, "ans": a, "qc": list(question_concepts), "ac": list(answer_concepts)})
         return res
     
+    def prune_concepts(self, data):
+        """
+        Looks for stop words and removes concepts that are not in Conceptnet.
+        Originally in prune_qc.py
+        """
+        
+        import nltk
+
+        nltk.download('stopwords')
+        nltk_stopwords = nltk.corpus.stopwords.words('english')
+        nltk_stopwords += ["like", "gone", "did", "going", "would", "could", "get", "in", "up", "may", "wanter"]
+        
+        pruned_data = []
+        for item in tqdm(data, desc='Pruning concepts'):
+            qc = item["qc"]
+            prune_qc = []
+            for c in qc:
+                if c[-2:] == "er" and c[:-2] in qc:
+                    continue
+                if c[-1:] == "e" and c[:-1] in qc:
+                    continue
+                have_stop = False
+                
+                for t in c.split("_"):
+                    if t in nltk_stopwords:
+                        have_stop = True
+                if not have_stop and c in self.concept_vocab:
+                    prune_qc.append(c)
+
+            ac = item["ac"]
+            prune_ac = []
+            for c in ac:
+                if c[-2:] == "er" and c[:-2] in ac:
+                    continue
+                if c[-1:] == "e" and c[:-1] in ac:
+                    continue
+                all_stop = True
+                for t in c.split("_"):
+                    if t not in nltk_stopwords:
+                        all_stop = False
+                if not all_stop and c in self.concept_vocab:
+                    prune_ac.append(c)
+
+            item["qc"] = prune_qc
+            item["ac"] = prune_ac
+
+            pruned_data.append(item)
+
+        return pruned_data
+    
     def process(self, objects_list, add_rooms=True, exclude_self=False, outfilename='ai2thor_objects_to_objects'):
         with open(objects_list, 'r') as f: 
             lines = f.read().split('\n')
@@ -134,7 +182,7 @@ class GroundConcepts(object):
         if add_rooms:
             objects_all += ['Kitchen', 'Bedroom', 'Bathroom', 'LivingRoom']
             name += '_rooms'
-            print('Added rooms')
+            #print('Added rooms')
             
         if exclude_self:
             _objects_all = [' '.join(objects_all[:ii] + objects_all[ii+1:]) for ii, oo in enumerate(objects)]
@@ -147,6 +195,7 @@ class GroundConcepts(object):
         output_path.mkdir(exist_ok=True, parents=True) 
 
         res = self.match_mentioned_concepts(sents=objects, answers=_objects_all)
+        res = self.prune_concepts(res)
 
         opts = jsbeautifier.default_options()
         opts.indent_size = 2
@@ -156,3 +205,5 @@ class GroundConcepts(object):
         with open(out_fn, 'w') as fp:
             fp.write(jsbeautifier.beautify(json.dumps(res), opts))
         print(f'Saved to {out_fn}')
+
+
