@@ -70,6 +70,10 @@ cd ../embeddings
 python create_embeddings_glove.py
 ```
 
+#### TODO:
+Create TransE embeddings of knowledge graph concepts and relations
+#cd embeddings/OpenKE
+
 #### Concept Grounding
 ```
 # concept grounding: core concept recognition (find mentioned concepts)

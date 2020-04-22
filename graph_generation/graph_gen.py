@@ -145,7 +145,6 @@ class GenGraph(object):
         self.concepts_fn = concepts_fn
         self.paths_fn = paths_fn
         self.load_resources()
-        
         final_text = ""
 
         for index, qa_pairs in tqdm(enumerate(self.paths_data), desc="Building Graphs", total=len(self.paths_data)):
@@ -171,7 +170,7 @@ class GenGraph(object):
             gstr = self.plain_graph_generation(qcs=qcs, acs=acs, paths=statement_paths, rels=statement_rel_list)
             final_text += gstr + "\n"
             
-        out_graph_fn = Path(self.paths_fn).parent / f'{Path(self.paths_fn).stem}_graph.json'
+        out_graph_fn = Path(self.paths_fn).parent / f'{Path(self.paths_fn).stem}_graph'
 
         with open(out_graph_fn, 'w') as fw:
             fw.write(final_text)
