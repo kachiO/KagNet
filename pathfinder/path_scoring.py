@@ -16,9 +16,9 @@ class ScorePaths(object):
     def __init__(self, config_path, concept_embedding_fn=None, relation_embedding_fn=None):
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
-        self.path = Path(config_path).parent.parent
-        self.concept_fn = self.path / CONCEPT_EMBEDDING_PATH if concept_embedding_fn is None else concept_embedding_fn
-        self.relation_fn = self.path / RELATION_EMBEDDING_PATH if relation_embedding_fn is None else relation_embedding_fn
+        self.root= Path(config_path).parent.parent
+        self.concept_fn = self.root/ CONCEPT_EMBEDDING_PATH if concept_embedding_fn is None else concept_embedding_fn
+        self.relation_fn = self.root/ RELATION_EMBEDDING_PATH if relation_embedding_fn is None else relation_embedding_fn
         self.load_resources()
 
     def load_resources(self,):

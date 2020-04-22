@@ -25,11 +25,11 @@ class GroundConcepts(object):
     def __init__(self, config_path):
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
-        self.path = Path(config_path).parent.parent
+        self.root= Path(config_path).parent.parent
         self.nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'textcat'])
         self.nlp.add_pipe(self.nlp.create_pipe('sentencizer'))
 
-        with open(self.path / self.config["paths"]["concept_vocab"][3:], "r", encoding="utf8") as f:
+        with open(self.root/ self.config["paths"]["concept_vocab"][3:], "r", encoding="utf8") as f:
             self.concept_vocab = [l.strip() for l in list(f.readlines())]
 
         self.concept_vocab = [c.replace("_", " ") for c in self.concept_vocab]
@@ -41,7 +41,7 @@ class GroundConcepts(object):
         return lcs
 
     def load_matcher(self,):
-        with open(self.path / self.config["paths"]["matcher_patterns"][3:], "r", encoding="utf8") as f:
+        with open(self.root/ self.config["paths"]["matcher_patterns"][3:], "r", encoding="utf8") as f:
             all_patterns = json.load(f)
 
         matcher = Matcher(self.nlp.vocab)
@@ -191,7 +191,7 @@ class GroundConcepts(object):
             _objects_all = [' '.join(objects_all) for ii, oo in enumerate(objects)]
             name += '_include_self'
 
-        output_path = self.path / 'datasets/ai2thor'
+        output_path = self.root/ 'datasets/ai2thor'
         output_path.mkdir(exist_ok=True, parents=True) 
 
         res = self.match_mentioned_concepts(sents=objects, answers=_objects_all)

@@ -30,6 +30,7 @@ conceptnet/conceptnet-assertions-5.6.0.csv.en
 grounding/_grounding_concepts.py
 pathfinder/_pathfinder.py
 pathfinder/_path_scoring.py
+graph_generation/_graph_gen.py
 *.dgl
 *.model
 *.bin
