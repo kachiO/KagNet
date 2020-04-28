@@ -19,7 +19,7 @@ def save_data():
     with open(output_folder + "entity2id.txt", "w", encoding="utf8") as f:
         f.write("%d\n"%len(entity2id))
         for e in entity2id:
-            f.write("%s\t%d\n" % (e, entity2id[e]))
+            f.write(f"{e}\t{entity2id[e]}\n")
 
     # write relation2id.txt
     relation2id = {}
@@ -31,8 +31,7 @@ def save_data():
     with open(output_folder + "relation2id.txt", "w", encoding="utf8") as f:
         f.write("%d\n" % len(relation2id))
         for e in relation2id:
-            f.write("%s\t%d\n" % (e, relation2id[e]))
-
+            f.write(f"{e}\t{relation2id[e]}\n")
 
     # write train2id.txt
     triples = []
