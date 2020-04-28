@@ -193,17 +193,21 @@ class GroundConcepts(object):
 
         output_path = self.root/ 'datasets/ai2thor'
         output_path.mkdir(exist_ok=True, parents=True) 
-
-        res = self.match_mentioned_concepts(sents=objects, answers=_objects_all)
-        res = self.prune_concepts(res)
-
-        opts = jsbeautifier.default_options()
-        opts.indent_size = 2
         outfilename += name
         out_fn  = str(output_path / f'{outfilename}_concepts.json')
 
+        if Path(out_fn).is_file():
+            print('Grounding file already exists.')
+            return
+
+        res = self.match_mentioned_concepts(sents=objects, answers=_objects_all)
+        res = self.prune_concepts(res)
+        opts = jsbeautifier.default_options()
+        opts.indent_size = 2
+
         with open(out_fn, 'w') as fp:
             fp.write(jsbeautifier.beautify(json.dumps(res), opts))
+
         print(f'Saved to {out_fn}')
 
 

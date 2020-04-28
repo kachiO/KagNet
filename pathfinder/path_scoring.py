@@ -9,8 +9,8 @@ from os import sys, path
 import random
 from pathlib import Path
 
-CONCEPT_EMBEDDING_PATH = "embeddings/concept_glove.avg.npy"
-RELATION_EMBEDDING_PATH = "embeddings/relation_glove.avg.npy"
+CONCEPT_EMBEDDING_PATH = "embeddings/concept_glove.max.npy"
+RELATION_EMBEDDING_PATH = "embeddings/relation_glove.max.npy"
 
 class ScorePaths(object):
     def __init__(self, config_path, concept_embedding_fn=None, relation_embedding_fn=None):
