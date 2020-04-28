@@ -6,7 +6,7 @@ config.read("paths.cfg")
 
 
 def save_data():
-    output_folder = config["paths"]["openie_fodler"]
+    output_folder = config["paths"]["openke_folder"]
 
 
     # write entity2id.txt
@@ -44,10 +44,11 @@ def save_data():
             obj = ls[2]
             assert subj in entity2id and obj in entity2id and rel in relation2id
             triples.append((entity2id[subj], relation2id[rel], entity2id[obj]))
+
     with open(output_folder + "train2id.txt", "w", encoding="utf8") as fw:
         fw.write("%d\n" % len(triples))
         for t in triples:
-            fw.write("%d\t%d\t%d\n" % (t[0], t[2], t[1]))
+            fw.write(f"{t[0]}\t{t[2]}\t{t[1]}\n")
 
     return triples
 

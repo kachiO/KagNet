@@ -33,11 +33,11 @@ transe = TransE(
 model = NegativeSampling(model = transe, loss = SigmoidLoss(adv_temperature = 1), batch_size = train_dataloader.get_batch_size())
 
 # train the model
-trainer = Trainer(model = model, data_loader = train_dataloader, train_times = 1000, alpha = 1.0, use_gpu = False, opt_method='adam')
+trainer = Trainer(model = model, data_loader = train_dataloader, train_times = 1000, alpha = 1.0, use_gpu = True, opt_method='adam')
 trainer.run()
 transe.save_checkpoint('./checkpoint/transe.ckpt')
 
 # test the model
 transe.load_checkpoint('./checkpoint/transe.ckpt')
-tester = Tester(model = transe, data_loader = test_dataloader, use_gpu = False)
+tester = Tester(model = transe, data_loader = test_dataloader, use_gpu = True)
 tester.run_link_prediction(type_constrain = False)
