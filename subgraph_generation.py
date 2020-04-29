@@ -25,7 +25,7 @@ fn = Path('./datasets/ai2thor/ai2thor_objects_to_objects_rooms_include_self_conc
 pathfinder.process(fn, nhops=1, beautify=True)
 print('Path finding...Done')
 
-if not Path(../conceptnet/cpnet.graph).is_file():
+if not Path('../conceptnet/cpnet.graph').is_file():
     from pathfinder.graph_construction import save_cpnet
     save_cpnet()
 
