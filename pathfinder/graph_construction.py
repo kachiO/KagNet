@@ -10,13 +10,15 @@ import time
 import timeit
 import nltk
 import json
+import os
+
 # print('NLTK Version: %s' % (nltk.__version__))
 nltk.download('stopwords')
 nltk_stopwords = nltk.corpus.stopwords.words('english')
 nltk_stopwords += ["like", "gone", "did", "going", "would", "could", "get", "in", "up", "may", "wanter"]
 
 config = configparser.ConfigParser()
-config.read("paths.cfg")
+config.read(os.path.dirname(os.path.abspath(__file__)) + "/paths.cfg")
 
 cpnet = None
 concept2id = None
@@ -82,4 +84,5 @@ def save_cpnet():
     # with open(config["paths"]["conceptnet_en_graph"], 'w') as f:
     #     f.write(json.dumps(nx.node_link_data(graph)))
 
-save_cpnet()
+if __name__ == "__main__":
+    save_cpnet()

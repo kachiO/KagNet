@@ -12,18 +12,22 @@ from tqdm import tqdm
 import networkx as nx, dgl, json, torch
 
 print('\nGrounding...')
-root = Path("~/projects/visual-navigation/KagNet")
-config_path = root / 'grounding/paths.cfg'
+root = Path("/home/odoemoo1/projects/visual-navigation/knowledge-aware-graph-net")
+config_path = str(root / 'grounding/paths.cfg')
 ground = GroundConcepts(config_path)
 ground.process(root / 'grounding/objects.txt')
 print('\nGrounding...Done')
 
 print('Path finding...')
-config_fn = root / 'pathfinder/paths.cfg'
+config_fn = str(root / 'pathfinder/paths.cfg')
 pathfinder = PathFinder(config_fn)
 fn = Path('./datasets/ai2thor/ai2thor_objects_to_objects_rooms_include_self_concepts.json')
 pathfinder.process(fn, nhops=1, beautify=True)
 print('Path finding...Done')
+
+if not Path('../conceptnet/cpnet.graph').is_file():
+    from pathfinder.graph_construction import save_cpnet
+    save_cpnet()
 
 print('Scoring Path...')
 scorer = ScorePaths(config_fn)
@@ -33,7 +37,7 @@ scorer.process(paths_fn, concepts_fn)
 print('Scoring Path...Done')
 
 print('Graph Generation...')
-config_fn = root / 'graph_generation/paths.cfg'
+config_fn =  str(root / 'graph_generation/paths.cfg')
 gen_graph = GenGraph(config_fn)
 paths_fn = 'datasets/ai2thor/ai2thor_objects_to_objects_rooms_include_self_concepts_1hops_paths.json_scores_pruned.pickle'
 concepts_fn = 'datasets/ai2thor/ai2thor_objects_to_objects_rooms_include_self_concepts.json'
